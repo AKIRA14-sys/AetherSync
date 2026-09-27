@@ -471,7 +471,7 @@ fun TransferProgressScreen(navController: NavHostController) {
                     Text("Vacation_Video.mp4", color = LightText, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(10.dp))
                     LinearProgressIndicator(
-                        progress = { 0.65f },
+                        progress = 0.65f,
                         modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)),
                         color = XenderGreen,
                         trackColor = Color.DarkGray
