@@ -11,12 +11,18 @@ import java.net.Socket
 
 class LocalNetworkManager(private val context: Context) {
     private val manager: WifiP2pManager = context.getSystemService(Context.WIFI_P2P_SERVICE) as WifiP2pManager
-    private val channel = manager.initialize()
+    private val channel: WifiP2pManager.Channel? = manager.initialize(context, context.mainLooper, null)
 
     fun discoverPeers(callback: (List<WifiP2pDevice>) -> Unit) {
-        manager.discoverPeers(channel, object : WifiP2pManager.WifiP2pPeerListListener {
-            override fun onPeersAvailable(peers: WifiP2pDeviceList) {
-                callback(peers.deviceList)
+        manager.discoverPeers(channel, object : WifiP2pManager.ActionListener {
+            override fun onSuccess() {
+                manager.requestPeers(channel) { peers ->
+                    callback(peers?.deviceList?.toList() ?: emptyList())
+                }
+            }
+
+            override fun onFailure(reason: Int) {
+                callback(emptyList())
             }
         })
     }
