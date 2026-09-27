@@ -23,12 +23,19 @@ object QRManager {
     fun parseQR(scannedText: String): ConnectionInfo? {
         if (!scannedText.startsWith("aethersync://")) return null
         return try {
-            val data = scannedText.removePrefix("aethersync://").split("/")
+            val path = scannedText.removePrefix("aethersync://")
+            val data = path.split("/")
+            if (data.size < 2) return null
             val address = data[0].split(":")
+            if (address.size < 2) return null
+            val ip = address[0]
+            val port = address[1].toIntOrNull() ?: return null
+            val sessionId = data[1]
+            if (ip.isBlank() || sessionId.isBlank()) return null
             ConnectionInfo(
-                ip = address[0],
-                port = address[1].toInt(),
-                sessionId = data[1]
+                ip = ip,
+                port = port,
+                sessionId = sessionId
             )
         } catch (e: Exception) {
             null

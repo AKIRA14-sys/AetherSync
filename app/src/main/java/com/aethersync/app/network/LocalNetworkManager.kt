@@ -3,20 +3,26 @@ package com.aethersync.app.network
 import android.content.Context
 import android.net.wifi.p2p.WifiP2pConfig
 import android.net.wifi.p2p.WifiP2pDevice
+import android.net.wifi.p2p.WifiP2pDeviceList
 import android.net.wifi.p2p.WifiP2pManager
-import android.net.wifi.p2p.WifiP2pPeer
 import java.net.InetAddress
 import java.net.ServerSocket
 import java.net.Socket
 
 class LocalNetworkManager(private val context: Context) {
     private val manager: WifiP2pManager = context.getSystemService(Context.WIFI_P2P_SERVICE) as WifiP2pManager
-    private val channel = manager.initialize()
+    private val channel: WifiP2pManager.Channel? = manager.initialize(context, context.mainLooper, null)
 
     fun discoverPeers(callback: (List<WifiP2pDevice>) -> Unit) {
-        manager.discoverPeers(channel, object : WifiP2pManager.WifiP2pPeerListListener {
-            override fun onPeersAvailable(peers: WifiP2pDeviceList) {
-                callback(peers.deviceList)
+        manager.discoverPeers(channel, object : WifiP2pManager.ActionListener {
+            override fun onSuccess() {
+                manager.requestPeers(channel) { peers ->
+                    callback(peers?.deviceList?.toList() ?: emptyList())
+                }
+            }
+
+            override fun onFailure(reason: Int) {
+                callback(emptyList())
             }
         })
     }
@@ -25,8 +31,12 @@ class LocalNetworkManager(private val context: Context) {
         val config = WifiP2pConfig().apply {
             deviceAddress = device.deviceAddress
         }
-        manager.connect(channel, config, object : WifiP2pManager.ConnectionFailedListener {
-            override fun onConnectionFailed(device: WifiP2pDevice, reason: Int) {
+        manager.connect(channel, config, object : WifiP2pManager.ActionListener {
+            override fun onSuccess() {
+                callback(true)
+            }
+
+            override fun onFailure(reason: Int) {
                 callback(false)
             }
         })
