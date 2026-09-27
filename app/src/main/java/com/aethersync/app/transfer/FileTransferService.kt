@@ -24,24 +24,27 @@ class FileTransferService(private val context: Context) {
             val totalSize = session.fileSize
             val startTime = System.currentTimeMillis()
 
-            inputStream.use { input ->
-                var bytesRead: Int
-                while (input.read(buffer).also { bytesRead = it } != -1) {
-                    outputStream.write(buffer, 0, bytesRead)
-                    bytesSent += bytesRead
+            outputStream.use { output ->
+                inputStream.use { input ->
+                    var bytesRead: Int
+                    while (input.read(buffer).also { bytesRead = it } != -1) {
+                        output.write(buffer, 0, bytesRead)
+                        bytesSent += bytesRead
 
-                    // Update progress
-                    session.progress = bytesSent.toFloat() / totalSize
+                        // Update progress
+                        session.progress = if (totalSize > 0) bytesSent.toFloat() / totalSize else 0f
 
-                    // Calculate speed (MB/s)
-                    val currentTime = System.currentTimeMillis()
-                    val duration = (currentTime - startTime) / 1000.0
-                    if (duration > 0) {
-                        session.speed = (bytesSent / 1024.0 / 1024.0) / duration
-                        session.remainingTime = ((totalSize - bytesSent) / (bytesSent / duration)).toLong()
+                        // Calculate speed (MB/s)
+                        val currentTime = System.currentTimeMillis()
+                        val duration = (currentTime - startTime) / 1000.0
+                        if (duration > 0 && bytesSent > 0) {
+                            val bytesPerSec = bytesSent / duration
+                            session.speed = bytesPerSec / (1024.0 * 1024.0)
+                            session.remainingTime = if (bytesPerSec > 0) ((totalSize - bytesSent) / bytesPerSec).toLong() else 0L
+                        }
                     }
+                    output.flush()
                 }
-                outputStream.flush()
             }
             session.status = SessionStatus.COMPLETED
         } catch (e: Exception) {
@@ -63,22 +66,25 @@ class FileTransferService(private val context: Context) {
             val totalSize = session.fileSize
             val startTime = System.currentTimeMillis()
 
-            inputStream.use { input ->
-                var bytesRead: Int
-                while (input.read(buffer).also { bytesRead = it } != -1) {
-                    outputStream.write(buffer, 0, bytesRead)
-                    bytesReceived += bytesRead
+            outputStream.use { output ->
+                inputStream.use { input ->
+                    var bytesRead: Int
+                    while (input.read(buffer).also { bytesRead = it } != -1) {
+                        output.write(buffer, 0, bytesRead)
+                        bytesReceived += bytesRead
 
-                    session.progress = bytesReceived.toFloat() / totalSize
+                        session.progress = if (totalSize > 0) bytesReceived.toFloat() / totalSize else 0f
 
-                    val currentTime = System.currentTimeMillis()
-                    val duration = (currentTime - startTime) / 1000.0
-                    if (duration > 0) {
-                        session.speed = (bytesReceived / 1024.0 / 1024.0) / duration
-                        session.remainingTime = ((totalSize - bytesReceived) / (bytesReceived / duration)).toLong()
+                        val currentTime = System.currentTimeMillis()
+                        val duration = (currentTime - startTime) / 1000.0
+                        if (duration > 0 && bytesReceived > 0) {
+                            val bytesPerSec = bytesReceived / duration
+                            session.speed = bytesPerSec / (1024.0 * 1024.0)
+                            session.remainingTime = if (bytesPerSec > 0) ((totalSize - bytesReceived) / bytesPerSec).toLong() else 0L
+                        }
                     }
+                    output.flush()
                 }
-                outputStream.flush()
             }
             session.status = SessionStatus.COMPLETED
         } catch (e: Exception) {

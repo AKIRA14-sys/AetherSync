@@ -3,8 +3,8 @@ package com.aethersync.app.network
 import android.content.Context
 import android.net.wifi.p2p.WifiP2pConfig
 import android.net.wifi.p2p.WifiP2pDevice
+import android.net.wifi.p2p.WifiP2pDeviceList
 import android.net.wifi.p2p.WifiP2pManager
-import android.net.wifi.p2p.WifiP2pPeer
 import java.net.InetAddress
 import java.net.ServerSocket
 import java.net.Socket
@@ -25,8 +25,12 @@ class LocalNetworkManager(private val context: Context) {
         val config = WifiP2pConfig().apply {
             deviceAddress = device.deviceAddress
         }
-        manager.connect(channel, config, object : WifiP2pManager.ConnectionFailedListener {
-            override fun onConnectionFailed(device: WifiP2pDevice, reason: Int) {
+        manager.connect(channel, config, object : WifiP2pManager.ActionListener {
+            override fun onSuccess() {
+                callback(true)
+            }
+
+            override fun onFailure(reason: Int) {
                 callback(false)
             }
         })
